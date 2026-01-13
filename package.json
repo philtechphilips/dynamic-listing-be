@@ -7,19 +7,12 @@
     "start": "npm run build && node dist/index.js",
     "dev": "nodemon --exec babel-node src/index.js",
     "build": "./node_modules/.bin/babel src -d dist",
-    "test": "jest --coverage"
-  },
-  "pre-push": [
-    "test"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/alvacoder/NodeJS-Express-Template.git"
+    "test": "jest --coverage",
+    "prepare": "husky install"
   },
   "keywords": [],
-  "author": "Idris Adeniji (@alvacoder)",
+  "author": "Pelumi Isola",
   "license": "ISC",
-  "homepage": "https://github.com/alvacoder/NodeJS-Express-Template#readme",
   "devDependencies": {
     "@babel/cli": "^7.16.0",
     "@babel/core": "^7.16.0",
@@ -28,21 +21,21 @@
     "@babel/plugin-proposal-class-properties": "^7.16.0",
     "@babel/preset-env": "^7.16.4",
     "eslint": "^8.2.0",
-    "eslint-config-airbnb-base": "^14.0.0",
+    "eslint-config-airbnb-base": "^15.0.0",
     "eslint-plugin-import": "^2.25.3",
     "eslint-plugin-node": "^11.1.0",
-    "eslint-plugin-promise": "^5.1.1",
+    "eslint-plugin-promise": "^6.0.0",
+    "husky": "^8.0.0",
     "jest": "^27.3.1",
-    "nodemon": "^2.0.15",
-    "pre-push": "^0.1.1",
+    "nodemon": "^3.0.0",
     "supertest": "^6.1.6"
   },
   "dependencies": {
-    "axios": "^0.24.0",
+    "axios": "^1.13.2",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.19.0",
     "chalk": "^4.1.2",
-    "cloudinary": "^1.27.1",
+    "cloudinary": "^2.8.0",
     "compression": "^1.7.4",
     "cors": "^2.8.5",
     "date-fns": "^2.25.0",
@@ -51,8 +44,7 @@
     "express-fileupload": "^1.2.1",
     "helmet": "^4.6.0",
     "joi": "^17.4.2",
-    "jsonwebtoken": "^8.5.1",
-    "mailgun-js": "^0.22.0",
+    "jsonwebtoken": "^9.0.3",
     "mongo-sanitize": "^1.1.0",
     "mongoose": "^6.0.13",
     "morgan": "^1.10.0",
