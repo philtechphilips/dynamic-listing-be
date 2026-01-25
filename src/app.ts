@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import compression from "compression";
@@ -6,10 +6,9 @@ import fileUpload from "express-fileupload";
 import morgan from "morgan";
 import bodyParser from "body-parser";
 
-import config from "./config";
-import v1Router from "./routes/index.js";
+import v1Router from "./routes/index";
 
-const app = new express();
+const app = express();
 
 // Setup middlewares
 app.use(cors());
@@ -25,20 +24,20 @@ app.use(
   })
 );
 app.use(
-  bodyParser.json({ limit: "50mb", extended: true, parameterLimit: "50mb" })
+  bodyParser.json({ limit: "50mb", extended: true, parameterLimit: "50mb" } as any)
 );
-app.use(bodyParser.urlencoded({ extended: true, parameterLimit: "100000" }));
+app.use(bodyParser.urlencoded({ extended: true, parameterLimit: "100000" } as any));
 
 app.use("/v1", v1Router);
 
-app.get("/", (req, res) => {
+app.get("/", (_req: Request, res: Response) => {
   res.send({
     status: 200,
     message: "Welcome to MyXalary Recruitment Service v1.0",
   });
 });
 
-app.use(function (req, res, next) {
+app.use(function (_req: Request, res: Response, next: NextFunction) {
   res
     .status(404)
     .send({ responseCode: 404, message: "Invalid resource URL", data: [] });
