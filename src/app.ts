@@ -28,7 +28,7 @@ app.use(
 );
 app.use(bodyParser.urlencoded({ extended: true, parameterLimit: "100000" } as any));
 
-app.use("/v1", v1Router);
+app.use("/api/v1", v1Router);
 
 app.get("/", (_req: Request, res: Response) => {
   res.send({

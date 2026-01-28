@@ -14,6 +14,11 @@ router.get("/", (_req: Request, res: Response) => {
 });
 
 router.post("/auth/signup", validate(signupSchema), AuthController.signup);
+router.get("/auth/verify-email", AuthController.verifyEmail);
+router.post("/auth/login", AuthController.login);
+router.post("/auth/google", AuthController.googleAuth);
+router.post("/auth/request-otp", AuthController.requestOTP);
+router.post("/auth/verify-otp", AuthController.verifyOTP);
 
 
 
