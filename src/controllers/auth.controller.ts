@@ -8,7 +8,7 @@ import { sendMail } from "../services/mail.service";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-const generateToken = (userId: number) => {
+const generateToken = (userId: string) => {
     return jwt.sign({ id: userId }, process.env.JWT_SECRET as string, {
         expiresIn: "1d",
     });
@@ -125,6 +125,7 @@ export const login = async (req: Request, res: Response) => {
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                role: user.role,
             },
         });
     } catch (error) {
@@ -135,29 +136,52 @@ export const login = async (req: Request, res: Response) => {
 
 export const googleAuth = async (req: Request, res: Response) => {
     try {
-        const { credential } = req.body;
-        const ticket = await client.verifyIdToken({
-            idToken: credential,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
+        const { credential, email: directEmail, name: directName, googleId: directGoogleId } = req.body;
 
-        const payload = ticket.getPayload();
-        if (!payload) {
-            return res.status(400).json({ message: "Invalid Google token" });
+        let email: string;
+        let name: string;
+        let googleId: string;
+
+        // Check if we received direct user info (from access token flow)
+        if (directEmail && directGoogleId) {
+            email = directEmail;
+            name = directName || "Google User";
+            googleId = directGoogleId;
+        } else if (credential) {
+            // Original ID token flow
+            try {
+                const ticket = await client.verifyIdToken({
+                    idToken: credential,
+                    audience: process.env.GOOGLE_CLIENT_ID,
+                });
+
+                const payload = ticket.getPayload();
+                if (!payload) {
+                    return res.status(400).json({ message: "Invalid Google token" });
+                }
+
+                email = payload.email as string;
+                name = payload.name || "Google User";
+                googleId = payload.sub;
+            } catch (tokenError) {
+                // If ID token verification fails, the credential might be an access token
+                // In this case, we should have received user info directly
+                return res.status(400).json({ message: "Invalid Google credentials" });
+            }
+        } else {
+            return res.status(400).json({ message: "Missing Google credentials" });
         }
 
-        const { email, name, sub: googleId } = payload;
-
         let user = await prisma.user.findUnique({
-            where: { email: email as string },
+            where: { email },
         });
 
         if (!user) {
             // Create user if not exists
             user = await prisma.user.create({
                 data: {
-                    email: email as string,
-                    name: name || "Google User",
+                    email,
+                    name,
                     googleId,
                     isVerified: true, // Google accounts are verified
                 },
@@ -165,7 +189,7 @@ export const googleAuth = async (req: Request, res: Response) => {
         } else if (!user.googleId) {
             // Link Google account if user exists but hasn't linked Google
             user = await prisma.user.update({
-                where: { email: email as string },
+                where: { email },
                 data: { googleId, isVerified: true },
             });
         }
@@ -179,6 +203,7 @@ export const googleAuth = async (req: Request, res: Response) => {
                 id: user.id,
                 name: user.name,
                 email: user.email,
+                role: user.role,
             },
         });
     } catch (error) {
@@ -269,6 +294,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
                 id: updatedUser.id,
                 name: updatedUser.name,
                 email: updatedUser.email,
+                role: updatedUser.role,
             },
         });
     } catch (error) {
@@ -277,3 +303,190 @@ export const verifyOTP = async (req: Request, res: Response) => {
     }
 };
 
+/**
+ * Verify reset password token
+ */
+export const verifyResetToken = async (req: Request, res: Response) => {
+    try {
+        const { token } = req.query;
+
+        if (!token || typeof token !== "string") {
+            return res.status(400).json({ message: "Invalid reset token" });
+        }
+
+        const user = await prisma.user.findFirst({
+            where: {
+                resetPasswordToken: token,
+                resetPasswordExpires: {
+                    gt: new Date(),
+                },
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+            },
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: "Invalid or expired reset token" });
+        }
+
+        return res.status(200).json({
+            message: "Token is valid",
+            user: {
+                name: user.name,
+                email: user.email,
+            },
+        });
+    } catch (error) {
+        console.error("Verify reset token error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+/**
+ * Reset password with token
+ */
+export const resetPassword = async (req: Request, res: Response) => {
+    try {
+        const { token, password } = req.body;
+
+        if (!token || !password) {
+            return res.status(400).json({ message: "Token and password are required" });
+        }
+
+        if (password.length < 8) {
+            return res.status(400).json({ message: "Password must be at least 8 characters long" });
+        }
+
+        const user = await prisma.user.findFirst({
+            where: {
+                resetPasswordToken: token,
+                resetPasswordExpires: {
+                    gt: new Date(),
+                },
+            },
+        });
+
+        if (!user) {
+            return res.status(400).json({ message: "Invalid or expired reset token" });
+        }
+
+        // Hash the new password
+        const hashedPassword = await bcrypt.hash(password, 12);
+
+        // Update user with new password and clear reset token
+        const updatedUser = await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                password: hashedPassword,
+                resetPasswordToken: null,
+                resetPasswordExpires: null,
+                isVerified: true,
+            },
+        });
+
+        // Generate login token
+        const authToken = generateToken(updatedUser.id);
+
+        return res.status(200).json({
+            message: "Password has been set successfully",
+            token: authToken,
+            user: {
+                id: updatedUser.id,
+                name: updatedUser.name,
+                email: updatedUser.email,
+                role: updatedUser.role,
+            },
+        });
+    } catch (error) {
+        console.error("Reset password error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+/**
+ * Request password reset (forgot password)
+ */
+export const forgotPassword = async (req: Request, res: Response) => {
+    try {
+        const { email } = req.body;
+
+        if (!email) {
+            return res.status(400).json({ message: "Email is required" });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        // Always return success to prevent email enumeration
+        if (!user) {
+            return res.status(200).json({
+                message: "If an account exists with this email, a password reset link has been sent.",
+            });
+        }
+
+        // Generate reset token
+        const resetPasswordToken = randomstring.generate(32);
+        const resetPasswordExpires = new Date(Date.now() + 60 * 60 * 1000); // 1 hour
+
+        await prisma.user.update({
+            where: { id: user.id },
+            data: {
+                resetPasswordToken,
+                resetPasswordExpires,
+            },
+        });
+
+        // Send reset email
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetPasswordToken}`;
+        const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Reset Your Password</h1>
+                    </div>
+                    <div class="content">
+                        <p>Hi ${user.name},</p>
+                        <p>We received a request to reset your password for your <strong>Dynamic Listing</strong> account.</p>
+                        <p>Click the button below to reset your password:</p>
+                        <p style="text-align: center;">
+                            <a href="${resetUrl}" class="button">Reset Password</a>
+                        </p>
+                        <p>Or copy and paste this link into your browser:</p>
+                        <p style="word-break: break-all; color: #667eea;">${resetUrl}</p>
+                        <p><strong>This link will expire in 1 hour.</strong></p>
+                        <p>If you didn't request this, please ignore this email.</p>
+                    </div>
+                    <div class="footer">
+                        <p>&copy; ${new Date().getFullYear()} Dynamic Listing. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        await sendMail(email, "Reset Your Password - Dynamic Listing", emailHtml);
+
+        return res.status(200).json({
+            message: "If an account exists with this email, a password reset link has been sent.",
+        });
+    } catch (error) {
+        console.error("Forgot password error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};

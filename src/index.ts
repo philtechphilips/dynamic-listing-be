@@ -12,7 +12,7 @@ const startServer = async () => {
     app.listen(config.port, () => {
       console.log(
         `${chalk.blue(
-          `Recruitment service running on ${config.baseUrl}:${config.port}`
+          `Dynamic Listing API running on ${config.baseUrl}:${config.port}`
         )}`
       );
     });

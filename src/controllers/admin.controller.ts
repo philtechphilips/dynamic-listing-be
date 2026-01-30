@@ -1,0 +1,363 @@
+import { Response } from "express";
+import randomstring from "randomstring";
+import prisma from "../services/db.service";
+import { sendMail } from "../services/mail.service";
+import { AuthRequest } from "../middlewares/auth.middleware";
+
+/**
+ * Get all admin users
+ */
+export const getAdminUsers = async (_req: AuthRequest, res: Response) => {
+    try {
+        const users = await prisma.user.findMany({
+            where: { role: "admin" },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                isVerified: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+            orderBy: { createdAt: "desc" },
+        });
+
+        // Map to include status based on isVerified
+        const usersWithStatus = users.map(user => ({
+            ...user,
+            status: user.isVerified ? "Active" : "Pending",
+        }));
+
+        return res.status(200).json({ users: usersWithStatus });
+    } catch (error) {
+        console.error("Error fetching admin users:", error);
+        return res.status(500).json({ message: "Failed to fetch users" });
+    }
+};
+
+/**
+ * Get all app users (non-admins)
+ */
+export const getAppUsers = async (_req: AuthRequest, res: Response) => {
+    try {
+        const users = await prisma.user.findMany({
+            where: { role: "user" },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                isVerified: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+            orderBy: { createdAt: "desc" },
+        });
+
+        const usersWithStatus = users.map(user => ({
+            ...user,
+            status: user.isVerified ? "Active" : "Pending",
+        }));
+
+        return res.status(200).json({ users: usersWithStatus });
+    } catch (error) {
+        console.error("Error fetching app users:", error);
+        return res.status(500).json({ message: "Failed to fetch users" });
+    }
+};
+
+
+/**
+ * Get a single admin user by ID
+ */
+export const getAdminUser = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const user = await prisma.user.findFirst({
+            where: { id, role: "admin" },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                isVerified: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: "Admin user not found" });
+        }
+
+        return res.status(200).json({
+            user: {
+                ...user,
+                status: user.isVerified ? "Active" : "Pending",
+            },
+        });
+    } catch (error) {
+        console.error("Error fetching admin user:", error);
+        return res.status(500).json({ message: "Failed to fetch user" });
+    }
+};
+
+/**
+ * Create a new admin user and send invitation email
+ */
+export const createAdminUser = async (req: AuthRequest, res: Response) => {
+    try {
+        const { name, email } = req.body;
+
+        if (!name || !email) {
+            return res.status(400).json({ message: "Name and email are required" });
+        }
+
+        // Check if user already exists
+        const existingUser = await prisma.user.findUnique({
+            where: { email },
+        });
+
+        if (existingUser) {
+            return res.status(400).json({ message: "A user with this email already exists" });
+        }
+
+        // Generate a reset password token for the invitation
+        const resetPasswordToken = randomstring.generate(32);
+        const resetPasswordExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days from now
+
+        // Create new admin user without password (they'll set it via reset link)
+        const newUser = await prisma.user.create({
+            data: {
+                name,
+                email,
+                role: "admin",
+                isVerified: true, // Admin-created users are pre-verified
+                resetPasswordToken,
+                resetPasswordExpires,
+            },
+        });
+
+        // Send invitation email with password reset link
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetPasswordToken}`;
+        const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Welcome to Dynamic Listing Admin!</h1>
+                    </div>
+                    <div class="content">
+                        <p>Hi ${name},</p>
+                        <p>You have been invited to join <strong>Dynamic Listing</strong> as an administrator.</p>
+                        <p>To complete your account setup, please click the button below to set your password:</p>
+                        <p style="text-align: center;">
+                            <a href="${resetUrl}" class="button">Set Your Password</a>
+                        </p>
+                        <p>Or copy and paste this link into your browser:</p>
+                        <p style="word-break: break-all; color: #667eea;">${resetUrl}</p>
+                        <p><strong>This link will expire in 7 days.</strong></p>
+                        <p>If you did not expect this invitation, please ignore this email.</p>
+                    </div>
+                    <div class="footer">
+                        <p>&copy; ${new Date().getFullYear()} Dynamic Listing. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        await sendMail(email, "You're Invited to Dynamic Listing Admin", emailHtml);
+
+        return res.status(201).json({
+            message: "Admin user created successfully. An invitation email has been sent.",
+            user: {
+                id: newUser.id,
+                name: newUser.name,
+                email: newUser.email,
+                role: newUser.role,
+                status: "Pending",
+            },
+        });
+    } catch (error) {
+        console.error("Error creating admin user:", error);
+        return res.status(500).json({ message: "Failed to create admin user" });
+    }
+};
+
+/**
+ * Update an admin user
+ */
+export const updateAdminUser = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+        const { name, email } = req.body;
+
+        // Check if user exists and is an admin
+        const existingUser = await prisma.user.findFirst({
+            where: { id, role: "admin" },
+        });
+
+        if (!existingUser) {
+            return res.status(404).json({ message: "Admin user not found" });
+        }
+
+        // If email is being changed, check it's not taken
+        if (email && email !== existingUser.email) {
+            const emailTaken = await prisma.user.findUnique({
+                where: { email },
+            });
+            if (emailTaken) {
+                return res.status(400).json({ message: "Email is already in use" });
+            }
+        }
+
+        const updatedUser = await prisma.user.update({
+            where: { id },
+            data: {
+                ...(name && { name }),
+                ...(email && { email }),
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                isVerified: true,
+                createdAt: true,
+                updatedAt: true,
+            },
+        });
+
+        return res.status(200).json({
+            message: "Admin user updated successfully",
+            user: {
+                ...updatedUser,
+                status: updatedUser.isVerified ? "Active" : "Pending",
+            },
+        });
+    } catch (error) {
+        console.error("Error updating admin user:", error);
+        return res.status(500).json({ message: "Failed to update admin user" });
+    }
+};
+
+/**
+ * Delete an admin user
+ */
+export const deleteAdminUser = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        // Prevent deleting yourself
+        if (req.user?.id === id) {
+            return res.status(400).json({ message: "You cannot delete your own account" });
+        }
+
+        // Check if user exists and is an admin
+        const existingUser = await prisma.user.findFirst({
+            where: { id, role: "admin" },
+        });
+
+        if (!existingUser) {
+            return res.status(404).json({ message: "Admin user not found" });
+        }
+
+        await prisma.user.delete({
+            where: { id },
+        });
+
+        return res.status(200).json({ message: "Admin user deleted successfully" });
+    } catch (error) {
+        console.error("Error deleting admin user:", error);
+        return res.status(500).json({ message: "Failed to delete admin user" });
+    }
+};
+
+/**
+ * Resend invitation email to an admin user
+ */
+export const resendInvitation = async (req: AuthRequest, res: Response) => {
+    try {
+        const { id } = req.params;
+
+        const user = await prisma.user.findFirst({
+            where: { id, role: "admin" },
+        });
+
+        if (!user) {
+            return res.status(404).json({ message: "Admin user not found" });
+        }
+
+        // Generate a new reset password token
+        const resetPasswordToken = randomstring.generate(32);
+        const resetPasswordExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+        await prisma.user.update({
+            where: { id },
+            data: {
+                resetPasswordToken,
+                resetPasswordExpires,
+            },
+        });
+
+        // Send invitation email
+        const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetPasswordToken}`;
+        const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+                    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+                    .header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+                    .content { background: #f9fafb; padding: 30px; border-radius: 0 0 10px 10px; }
+                    .button { display: inline-block; background: #667eea; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+                    .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h1>Set Your Password</h1>
+                    </div>
+                    <div class="content">
+                        <p>Hi ${user.name},</p>
+                        <p>A new invitation link has been generated for your <strong>Dynamic Listing</strong> admin account.</p>
+                        <p>Click the button below to set your password:</p>
+                        <p style="text-align: center;">
+                            <a href="${resetUrl}" class="button">Set Your Password</a>
+                        </p>
+                        <p>Or copy and paste this link into your browser:</p>
+                        <p style="word-break: break-all; color: #667eea;">${resetUrl}</p>
+                        <p><strong>This link will expire in 7 days.</strong></p>
+                    </div>
+                    <div class="footer">
+                        <p>&copy; ${new Date().getFullYear()} Dynamic Listing. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+
+        await sendMail(user.email, "Set Your Password - Dynamic Listing Admin", emailHtml);
+
+        return res.status(200).json({ message: "Invitation email has been resent" });
+    } catch (error) {
+        console.error("Error resending invitation:", error);
+        return res.status(500).json({ message: "Failed to resend invitation" });
+    }
+};
