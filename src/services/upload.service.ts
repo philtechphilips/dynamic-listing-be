@@ -10,6 +10,8 @@ const firebaseConfig = {
     authDomain: process.env.FIREBASE_AUTH_DOMAIN,
     projectId: process.env.FIREBASE_PROJECT_ID,
     storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID,
+    appId: process.env.FIREBASE_APP_ID
 };
 
 const app = initializeApp(firebaseConfig);
@@ -18,6 +20,10 @@ const storage = getStorage(app, process.env.FIREBASE_STORAGE_BUCKET);
 export const uploadToFirebase = async (file: any, folder: string = "listings"): Promise<string> => {
     try {
         const fileName = `${Date.now()}-${file.name}`;
+        // Ensure we only use the 'listings' folder if that's what the rules allow,
+        // or the user must update rules for other folders.
+        // The user provided rules match /listings/{allPaths=**}. 
+        // So we MUST use 'listings' folder to succeed without auth.
         const storageRef = ref(storage, `${folder}/${fileName}`);
 
         // Use tempFilePath if useTempFiles is enabled in express-fileupload

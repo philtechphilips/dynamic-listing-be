@@ -24,7 +24,8 @@ export const getComments = async (req: Request, res: Response) => {
                     select: {
                         id: true,
                         name: true,
-                        role: true
+                        role: true,
+                        image: true
                     }
                 }
             },
@@ -70,6 +71,7 @@ export const createComment = async (req: AuthRequest, res: Response) => {
                     select: {
                         id: true,
                         name: true,
+                        image: true,
                     }
                 }
             }
@@ -114,5 +116,70 @@ export const deleteComment = async (req: AuthRequest, res: Response) => {
     } catch (error) {
         console.error("Error deleting comment:", error);
         return res.status(500).json({ message: "Failed to delete comment" });
+    }
+};
+
+/**
+ * Get all comments made by the authenticated user
+ */
+export const getUserComments = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        const comments = await prisma.comment.findMany({
+            where: { userId },
+            include: {
+                user: {
+                    select: {
+                        id: true,
+                        name: true,
+                        image: true
+                    }
+                },
+                listing: {
+                    select: {
+                        id: true,
+                        title: true,
+                        slug: true,
+                        featuredImage: true
+                    }
+                },
+                news: {
+                    select: {
+                        id: true,
+                        title: true,
+                        slug: true,
+                        featuredImage: true
+                    }
+                }
+            },
+            orderBy: { createdAt: "desc" }
+        });
+
+        // Format comments for the frontend
+        const formattedComments = comments.map(comment => {
+            const item = comment.listing || comment.news;
+            const isListing = !!comment.listing;
+
+            return {
+                id: comment.id,
+                listing: item?.title || "Unknown Item", // Keeping 'listing' property name for compatibility with FE interface
+                text: comment.content,
+                date: comment.createdAt,
+                slug: item?.slug || "",
+                type: isListing ? 'listing' : 'news',
+                avatar: item?.featuredImage || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=100",
+                userImage: comment.user?.image
+            };
+        });
+
+        return res.status(200).json(formattedComments);
+    } catch (error) {
+        console.error("Error fetching user comments:", error);
+        return res.status(500).json({ message: "Failed to fetch user comments" });
     }
 };

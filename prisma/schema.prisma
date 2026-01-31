@@ -12,6 +12,7 @@ model User {
   name                 String
   email                String    @unique
   password             String?
+  image                String?
   googleId             String?   @unique
   role                 String    @default("user")
   otp                  String?

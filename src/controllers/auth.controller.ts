@@ -1,10 +1,12 @@
 import { Request, Response } from "express";
+import { AuthRequest } from "../middlewares/auth.middleware";
 import bcrypt from "bcryptjs";
 import randomstring from "randomstring";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import prisma from "../services/db.service";
 import { sendMail } from "../services/mail.service";
+import { uploadToFirebase } from "../services/upload.service";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -126,6 +128,7 @@ export const login = async (req: Request, res: Response) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                image: user.image,
             },
         });
     } catch (error) {
@@ -136,17 +139,19 @@ export const login = async (req: Request, res: Response) => {
 
 export const googleAuth = async (req: Request, res: Response) => {
     try {
-        const { credential, email: directEmail, name: directName, googleId: directGoogleId } = req.body;
+        const { credential, email: directEmail, name: directName, googleId: directGoogleId, image: directImage } = req.body;
 
         let email: string;
         let name: string;
         let googleId: string;
+        let image: string | undefined;
 
         // Check if we received direct user info (from access token flow)
         if (directEmail && directGoogleId) {
             email = directEmail;
             name = directName || "Google User";
             googleId = directGoogleId;
+            image = directImage;
         } else if (credential) {
             // Original ID token flow
             try {
@@ -163,6 +168,7 @@ export const googleAuth = async (req: Request, res: Response) => {
                 email = payload.email as string;
                 name = payload.name || "Google User";
                 googleId = payload.sub;
+                image = payload.picture;
             } catch (tokenError) {
                 // If ID token verification fails, the credential might be an access token
                 // In this case, we should have received user info directly
@@ -184,13 +190,14 @@ export const googleAuth = async (req: Request, res: Response) => {
                     name,
                     googleId,
                     isVerified: true, // Google accounts are verified
+                    image,
                 },
             });
         } else if (!user.googleId) {
             // Link Google account if user exists but hasn't linked Google
             user = await prisma.user.update({
                 where: { email },
-                data: { googleId, isVerified: true },
+                data: { googleId, isVerified: true, image: user.image ? undefined : image },
             });
         }
 
@@ -204,6 +211,7 @@ export const googleAuth = async (req: Request, res: Response) => {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                image: user.image,
             },
         });
     } catch (error) {
@@ -295,6 +303,7 @@ export const verifyOTP = async (req: Request, res: Response) => {
                 name: updatedUser.name,
                 email: updatedUser.email,
                 role: updatedUser.role,
+                image: updatedUser.image,
             },
         });
     } catch (error) {
@@ -398,6 +407,7 @@ export const resetPassword = async (req: Request, res: Response) => {
                 name: updatedUser.name,
                 email: updatedUser.email,
                 role: updatedUser.role,
+                image: updatedUser.image,
             },
         });
     } catch (error) {
@@ -487,6 +497,99 @@ export const forgotPassword = async (req: Request, res: Response) => {
         });
     } catch (error) {
         console.error("Forgot password error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+/**
+ * Change password for logged in user
+ */
+export const changePassword = async (req: AuthRequest, res: Response) => {
+    try {
+        const userId = req.user?.id;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        if (!currentPassword || !newPassword) {
+            return res.status(400).json({ message: "Current and new password are required" });
+        }
+
+        if (newPassword.length < 8) {
+            return res.status(400).json({ message: "New password must be at least 8 characters long" });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user || !user.password) {
+            return res.status(404).json({ message: "User not found" });
+        }
+
+        // Verify current password
+        const isPasswordCorrect = await bcrypt.compare(currentPassword, user.password);
+        if (!isPasswordCorrect) {
+            return res.status(400).json({ message: "Incorrect current password" });
+        }
+
+        // Hash new password
+        const hashedPassword = await bcrypt.hash(newPassword, 12);
+
+        await prisma.user.update({
+            where: { id: userId },
+            data: {
+                password: hashedPassword,
+            },
+        });
+
+        return res.status(200).json({ message: "Password updated successfully" });
+    } catch (error) {
+        console.error("Change password error:", error);
+        return res.status(500).json({ message: "Internal server error" });
+    }
+};
+
+/**
+ * Update user profile image
+ */
+export const updateProfileImage = async (req: AuthRequest, res: Response) => {
+    try {
+        if (!req.files || !req.files.image) {
+            return res.status(400).json({ message: "No image file provided" });
+        }
+
+        const userId = req.user?.id;
+        if (!userId) {
+            return res.status(401).json({ message: "Unauthorized" });
+        }
+
+        const imageFile = req.files.image;
+        // Use "listings" folder instead of "profiles" because current storage rules
+        // only allow public read/write access to listings/{allPaths=**}
+        const imageUrl = await uploadToFirebase(imageFile, "listings");
+
+        const updatedUser = await prisma.user.update({
+            where: { id: userId },
+            data: { image: imageUrl },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                image: true
+            }
+        });
+
+        return res.status(200).json({
+            message: "Profile image updated successfully",
+            user: updatedUser
+        });
+
+    } catch (error) {
+        console.error("Update profile image error:", error);
         return res.status(500).json({ message: "Internal server error" });
     }
 };

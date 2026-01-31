@@ -16,6 +16,7 @@ export const getAdminUsers = async (_req: AuthRequest, res: Response) => {
                 name: true,
                 email: true,
                 role: true,
+                image: true,
                 isVerified: true,
                 createdAt: true,
                 updatedAt: true,
@@ -48,6 +49,7 @@ export const getAppUsers = async (_req: AuthRequest, res: Response) => {
                 name: true,
                 email: true,
                 role: true,
+                image: true,
                 isVerified: true,
                 createdAt: true,
                 updatedAt: true,
@@ -82,6 +84,7 @@ export const getAdminUser = async (req: AuthRequest, res: Response) => {
                 name: true,
                 email: true,
                 role: true,
+                image: true,
                 isVerified: true,
                 createdAt: true,
                 updatedAt: true,
@@ -359,5 +362,53 @@ export const resendInvitation = async (req: AuthRequest, res: Response) => {
     } catch (error) {
         console.error("Error resending invitation:", error);
         return res.status(500).json({ message: "Failed to resend invitation" });
+    }
+};
+
+/**
+ * Get admin dashboard statistics
+ */
+export const getDashboardStats = async (_req: AuthRequest, res: Response) => {
+    try {
+        const [
+            totalUsers,
+            totalListings,
+            totalNews,
+            totalCategories,
+            recentUsers,
+            recentListings
+        ] = await Promise.all([
+            prisma.user.count({ where: { role: "user" } }),
+            prisma.listing.count(),
+            prisma.news.count(),
+            prisma.category.count(),
+            prisma.user.findMany({
+                where: { role: "user" },
+                take: 5,
+                orderBy: { createdAt: "desc" },
+                select: { id: true, name: true, email: true, image: true, createdAt: true, isVerified: true }
+            }),
+            prisma.listing.findMany({
+                take: 5,
+                orderBy: { createdAt: "desc" },
+                select: { id: true, title: true, status: true, createdAt: true, category: { select: { name: true } } }
+            })
+        ]);
+
+        return res.status(200).json({
+            counts: {
+                users: totalUsers,
+                listings: totalListings,
+                news: totalNews,
+                categories: totalCategories
+            },
+            lists: {
+                recentUsers,
+                recentListings
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching dashboard stats:", error);
+        return res.status(500).json({ message: "Failed to fetch dashboard stats" });
     }
 };
