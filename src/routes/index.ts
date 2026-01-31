@@ -60,6 +60,17 @@ router.post("/admin/news", authenticate, isAdmin, NewsController.createNews);
 router.put("/admin/news/:id", authenticate, isAdmin, NewsController.updateNews);
 router.delete("/admin/news/:id", authenticate, isAdmin, NewsController.deleteNews);
 
+// Comment routes
+import * as CommentController from "../controllers/comment.controller";
+router.get("/comments", CommentController.getComments);
+router.post("/comments", authenticate, CommentController.createComment);
+router.delete("/comments/:id", authenticate, CommentController.deleteComment);
+
+// Rating routes
+import * as RatingController from "../controllers/rating.controller";
+router.get("/ratings/:listingId", authenticate, RatingController.getUserRating);
+router.post("/ratings", authenticate, RatingController.upsertRating);
+
 
 
 router.use(function (_req: Request, res: Response, next: NextFunction) {

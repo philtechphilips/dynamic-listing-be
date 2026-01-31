@@ -23,6 +23,8 @@ model User {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
   news                 News[]
+  comments             Comment[]
+  ratings              Rating[]
 
   @@map("users")
 }
@@ -65,6 +67,8 @@ model Listing {
   reviewCount    Int      @default(0)
   is_video       Boolean  @default(false)
   video_url      String?
+  comments       Comment[]
+  ratings        Rating[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -86,8 +90,38 @@ model News {
   seoTitle       String?
   seoDescription String?  @db.Text
   seoKeywords    String?
+  comments       Comment[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
   @@map("news")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  content   String   @db.Text
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String?
+  listing   Listing? @relation(fields: [listingId], references: [id])
+  newsId    String?
+  news      News?    @relation(fields: [newsId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("comments")
+}
+
+model Rating {
+  id        String   @id @default(uuid())
+  value     Int      @default(0)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, listingId])
+  @@map("ratings")
 }
