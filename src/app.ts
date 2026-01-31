@@ -39,7 +39,7 @@ app.use("/api/v1", v1Router);
 app.get("/", (_req: Request, res: Response) => {
   res.send({
     status: 200,
-    message: "Welcome to MyXalary Recruitment Service v1.0",
+    message: "Welcome to Dynamic Listing API v1.0",
   });
 });
 
