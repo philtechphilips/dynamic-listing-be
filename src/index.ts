@@ -12,8 +12,8 @@ const startServer = async () => {
     app.listen(config.port, () => {
       console.log(
         `${chalk.blue(
-          `Dynamic Listing API running on ${config.baseUrl}:${config.port}`
-        )}`
+          `Dynamic Listing API running on ${config.baseUrl}:${config.port}`,
+        )}`,
       );
     });
   } catch (error) {
@@ -23,5 +23,3 @@ const startServer = async () => {
 };
 
 startServer();
-
-

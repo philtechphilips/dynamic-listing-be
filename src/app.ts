@@ -21,12 +21,18 @@ app.use(
     useTempFiles: true,
     abortOnLimit: true,
     responseOnLimit: "Maximum upload size is 25MB",
-  })
+  }),
 );
 app.use(
-  bodyParser.json({ limit: "50mb", extended: true, parameterLimit: "50mb" } as any)
+  bodyParser.json({
+    limit: "50mb",
+    extended: true,
+    parameterLimit: "50mb",
+  } as any),
 );
-app.use(bodyParser.urlencoded({ extended: true, parameterLimit: "100000" } as any));
+app.use(
+  bodyParser.urlencoded({ extended: true, parameterLimit: "100000" } as any),
+);
 
 app.use("/api/v1", v1Router);
 
