@@ -3,6 +3,7 @@ import * as AuthController from "../controllers/auth.controller";
 import * as AdminController from "../controllers/admin.controller";
 import * as CategoryController from "../controllers/category.controller";
 import * as ListingController from "../controllers/listing.controller";
+import * as NewsController from "../controllers/news.controller";
 
 import { validate } from "../middlewares/validate.middleware";
 import { signupSchema } from "../validation-schemas/auth.schema";
@@ -51,6 +52,13 @@ router.get("/listings/:id", ListingController.getListing);
 router.post("/admin/listings", authenticate, isAdmin, ListingController.createListing);
 router.put("/admin/listings/:id", authenticate, isAdmin, ListingController.updateListing);
 router.delete("/admin/listings/:id", authenticate, isAdmin, ListingController.deleteListing);
+
+// News routes
+router.get("/news", NewsController.getAllNews);
+router.get("/news/:id", NewsController.getNewsItem);
+router.post("/admin/news", authenticate, isAdmin, NewsController.createNews);
+router.put("/admin/news/:id", authenticate, isAdmin, NewsController.updateNews);
+router.delete("/admin/news/:id", authenticate, isAdmin, NewsController.deleteNews);
 
 
 

@@ -85,12 +85,21 @@ export const createListing = async (req: AuthRequest, res: Response) => {
             googleMapUrl,
             seoTitle,
             seoDescription,
-            seoKeywords
+            seoKeywords,
+            rating,
+            reviewCount,
+            is_video,
+            video_url
         } = req.body;
 
         if (!title || !categoryId || !location || !address) {
             return res.status(400).json({ message: "Missing required fields" });
         }
+
+        // Parse numeric fields if they exist
+        const parsedRating = rating !== undefined ? parseFloat(rating.toString()) : 0;
+        const parsedReviewCount = reviewCount !== undefined ? parseInt(reviewCount.toString(), 10) : 0;
+        const parsedIsVideo = is_video === 'true' || is_video === true;
 
         let uploadedImageUrl = featuredImage;
 
@@ -129,7 +138,11 @@ export const createListing = async (req: AuthRequest, res: Response) => {
                 googleMapUrl,
                 seoTitle,
                 seoDescription,
-                seoKeywords
+                seoKeywords,
+                rating: isNaN(parsedRating) ? 0 : parsedRating,
+                reviewCount: isNaN(parsedReviewCount) ? 0 : parsedReviewCount,
+                is_video: parsedIsVideo,
+                video_url
             },
             include: { category: true }
         });
@@ -159,6 +172,20 @@ export const updateListing = async (req: AuthRequest, res: Response) => {
 
         if (!existingListing) {
             return res.status(404).json({ message: "Listing not found" });
+        }
+
+        // Parse numeric fields if they exist in the update payload
+        if (data.rating !== undefined) {
+            data.rating = parseFloat(data.rating.toString());
+            if (isNaN(data.rating)) data.rating = existingListing.rating;
+        }
+        if (data.reviewCount !== undefined) {
+            data.reviewCount = parseInt(data.reviewCount.toString(), 10);
+            if (isNaN(data.reviewCount)) data.reviewCount = existingListing.reviewCount;
+        }
+
+        if (data.is_video !== undefined) {
+            data.is_video = data.is_video === 'true' || data.is_video === true;
         }
 
         // If title changed, update slug
