@@ -9,7 +9,16 @@ import slugify from "slugify";
 export const getCategories = async (_req: Request, res: Response) => {
   try {
     const categories = await prisma.category.findMany({
-      orderBy: { createdAt: "desc" },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        sortOrder: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
     });
 
     return res.status(200).json({ categories });
@@ -30,6 +39,15 @@ export const getCategory = async (req: Request, res: Response) => {
       where: {
         OR: [{ id: id }, { slug: id }],
       },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        sortOrder: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
 
     if (!category) {
@@ -48,7 +66,7 @@ export const getCategory = async (req: Request, res: Response) => {
  */
 export const createCategory = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, sortOrder } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: "Category name is required" });
@@ -69,11 +87,19 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
         .json({ message: "A category with this name or slug already exists" });
     }
 
+    const parsedSortOrder =
+      sortOrder !== undefined ? parseInt(sortOrder.toString(), 10) : undefined;
+    const finalSortOrder =
+      parsedSortOrder !== undefined && !isNaN(parsedSortOrder)
+        ? parsedSortOrder
+        : 0;
+
     const newCategory = await prisma.category.create({
       data: {
         name,
         slug,
         description,
+        sortOrder: finalSortOrder,
       },
     });
 
@@ -125,13 +151,24 @@ export const updateCategory = async (req: AuthRequest, res: Response) => {
       }
     }
 
+    const sortOrderRaw = req.body?.sortOrder;
+    let sortOrderValue: number | undefined;
+    if (sortOrderRaw !== undefined && sortOrderRaw !== null) {
+      const parsed = parseInt(String(sortOrderRaw), 10);
+      if (!Number.isNaN(parsed) && parsed >= 0) {
+        sortOrderValue = parsed;
+      }
+    }
+
+    const updateData: { name?: string; slug?: string; description?: string; sortOrder?: number } = {};
+    if (name) updateData.name = name;
+    if (name) updateData.slug = slug;
+    if (description !== undefined) updateData.description = description;
+    if (sortOrderValue !== undefined) updateData.sortOrder = sortOrderValue;
+
     const updatedCategory = await prisma.category.update({
       where: { id },
-      data: {
-        ...(name && { name }),
-        ...(name && { slug }),
-        ...(description !== undefined && { description }),
-      },
+      data: updateData,
     });
 
     return res.status(200).json({

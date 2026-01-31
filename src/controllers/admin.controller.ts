@@ -384,8 +384,14 @@ export const getDashboardStats = async (_req: AuthRequest, res: Response) => {
         recentListings,
       },
     });
-  } catch (error) {
+  } catch (error: unknown) {
     console.error("Error fetching dashboard stats:", error);
+    const prismaError = error as { code?: string };
+    if (prismaError.code === "P1001" || prismaError.code === "P1002") {
+      return res.status(503).json({
+        message: "Database unavailable. Please check your connection and that the database server is running.",
+      });
+    }
     return res.status(500).json({ message: "Failed to fetch dashboard stats" });
   }
 };

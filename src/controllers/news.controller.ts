@@ -4,8 +4,15 @@ import { AuthRequest } from "../middlewares/auth.middleware";
 import slugify from "slugify";
 import { uploadToFirebase } from "../services/upload.service";
 
+/** Effective headline: isHeadline and (no end date or end date in future) */
+function isEffectiveHeadline(item: { isHeadline?: boolean; headlineUntil?: Date | null }) {
+  if (!item.isHeadline) return false;
+  if (!item.headlineUntil) return true;
+  return new Date(item.headlineUntil) >= new Date();
+}
+
 /**
- * Get all news
+ * Get all news. For public (Published) lists, the current headline is ordered first.
  */
 export const getAllNews = async (req: Request, res: Response) => {
   try {
@@ -21,7 +28,7 @@ export const getAllNews = async (req: Request, res: Response) => {
       ];
     }
 
-    const news = await prisma.news.findMany({
+    let news = await prisma.news.findMany({
       where,
       include: {
         category: true,
@@ -29,6 +36,13 @@ export const getAllNews = async (req: Request, res: Response) => {
       },
       orderBy: { createdAt: "desc" },
     });
+
+    // Put effective headline first for display (e.g. home page)
+    const headlineIndex = news.findIndex((n) => isEffectiveHeadline(n));
+    if (headlineIndex > 0) {
+      const [headline] = news.splice(headlineIndex, 1);
+      news = [headline, ...news];
+    }
 
     return res.status(200).json({ news });
   } catch (error) {
@@ -106,6 +120,18 @@ export const createNews = async (req: AuthRequest, res: Response) => {
       counter++;
     }
 
+    const isHeadline = req.body.isHeadline === true || req.body.isHeadline === "true";
+    const headlineUntil = req.body.headlineUntil
+      ? new Date(req.body.headlineUntil)
+      : undefined;
+
+    if (isHeadline) {
+      await prisma.news.updateMany({
+        where: { isHeadline: true },
+        data: { isHeadline: false, headlineUntil: null },
+      });
+    }
+
     const newsItem = await prisma.news.create({
       data: {
         title,
@@ -119,6 +145,8 @@ export const createNews = async (req: AuthRequest, res: Response) => {
         seoDescription,
         seoKeywords,
         authorId: req.user?.id,
+        isHeadline: isHeadline || false,
+        headlineUntil: headlineUntil ?? null,
       },
       include: { category: true },
     });
@@ -170,6 +198,23 @@ export const updateNews = async (req: AuthRequest, res: Response) => {
         ? req.files.featuredImage[0]
         : req.files.featuredImage;
       data.featuredImage = await uploadToFirebase(file, "listings");
+    }
+
+    const isHeadline = data.isHeadline === true || data.isHeadline === "true";
+    if (isHeadline) {
+      await prisma.news.updateMany({
+        where: { id: { not: id }, isHeadline: true },
+        data: { isHeadline: false, headlineUntil: null },
+      });
+      data.isHeadline = true;
+      data.headlineUntil = data.headlineUntil
+        ? new Date(data.headlineUntil)
+        : data.headlineUntil === ""
+        ? null
+        : undefined;
+    } else if (Object.prototype.hasOwnProperty.call(data, "isHeadline")) {
+      data.isHeadline = false;
+      data.headlineUntil = null;
     }
 
     const updatedNews = await prisma.news.update({
