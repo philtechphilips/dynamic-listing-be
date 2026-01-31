@@ -5,7 +5,7 @@ import randomstring from "randomstring";
 import jwt from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import prisma from "../services/db.service";
-import { sendMail } from "../services/mail.service";
+import { sendMailInBackground } from "../services/mail.service";
 import { uploadToFirebase } from "../services/upload.service";
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
@@ -55,7 +55,7 @@ export const signup = async (req: Request, res: Response) => {
       <p>If you did not sign up for an account, please ignore this email.</p>
     `;
 
-        await sendMail(email, "Verify your email address", emailHtml);
+        sendMailInBackground(email, "Verify your email address", emailHtml);
 
         return res.status(201).json({
             message: "User created successfully. Please check your email to verify your account.",
@@ -260,7 +260,7 @@ export const requestOTP = async (req: Request, res: Response) => {
       <p>This code will expire in 10 minutes.</p>
     `;
 
-        await sendMail(email, "Your Verification Code", emailHtml);
+        sendMailInBackground(email, "Your Verification Code", emailHtml);
 
         return res.status(200).json({
             message: "OTP sent to your email.",
@@ -490,7 +490,7 @@ export const forgotPassword = async (req: Request, res: Response) => {
             </html>
         `;
 
-        await sendMail(email, "Reset Your Password - Dynamic Listing", emailHtml);
+        sendMailInBackground(email, "Reset Your Password - Dynamic Listing", emailHtml);
 
         return res.status(200).json({
             message: "If an account exists with this email, a password reset link has been sent.",

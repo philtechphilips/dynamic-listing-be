@@ -1,7 +1,7 @@
 import { Response } from "express";
 import randomstring from "randomstring";
 import prisma from "../services/db.service";
-import { sendMail } from "../services/mail.service";
+import { sendMailInBackground } from "../services/mail.service";
 import { AuthRequest } from "../middlewares/auth.middleware";
 
 /**
@@ -183,7 +183,7 @@ export const createAdminUser = async (req: AuthRequest, res: Response) => {
             </html>
         `;
 
-        await sendMail(email, "You're Invited to Dynamic Listing Admin", emailHtml);
+        sendMailInBackground(email, "You're Invited to Dynamic Listing Admin", emailHtml);
 
         return res.status(201).json({
             message: "Admin user created successfully. An invitation email has been sent.",
@@ -356,7 +356,7 @@ export const resendInvitation = async (req: AuthRequest, res: Response) => {
             </html>
         `;
 
-        await sendMail(user.email, "Set Your Password - Dynamic Listing Admin", emailHtml);
+        sendMailInBackground(user.email, "Set Your Password - Dynamic Listing Admin", emailHtml);
 
         return res.status(200).json({ message: "Invitation email has been resent" });
     } catch (error) {
