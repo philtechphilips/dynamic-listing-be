@@ -7,12 +7,13 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ... (User model)
 model User {
   id                   String    @id @default(uuid())
   name                 String
   email                String    @unique
   password             String?
-  image                String?
+  image                String?   @db.Text
   googleId             String?   @unique
   role                 String    @default("user")
   otp                  String?
@@ -56,7 +57,7 @@ model Listing {
   status         String   @default("Draft")
   excerpt        String?  @db.Text
   content        String?  @db.LongText
-  featuredImage  String?
+  featuredImage  String?  @db.LongText
   phone          String?
   email          String?
   website        String?
@@ -83,7 +84,7 @@ model News {
   slug           String    @unique
   content        String?   @db.LongText
   excerpt        String?   @db.Text
-  featuredImage  String?
+  featuredImage  String?   @db.LongText
   status         String    @default("Published")
   categoryId     String?
   category       Category? @relation(fields: [categoryId], references: [id])
