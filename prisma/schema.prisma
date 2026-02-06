@@ -35,12 +35,16 @@ model Category {
   id          String    @id @default(uuid())
   name        String    @unique
   slug        String    @unique
-  description String?   @db.Text
-  sortOrder   Int       @default(0)
-  listings    Listing[]
-  news        News[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  description    String?   @db.Text
+  customHeading  String?
+  seoTitle       String?
+  seoDescription String?   @db.Text
+  seoKeywords    String?
+  sortOrder      Int       @default(0)
+  listings       Listing[]
+  news           News[]
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
 
   @@map("categories")
 }

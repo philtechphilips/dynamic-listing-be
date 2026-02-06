@@ -2,15 +2,15 @@
  * =============================================================================
  * DASHBOARD CONTROLLER
  * =============================================================================
- * 
+ *
  * This controller provides summary statistics for the user dashboard.
  * Aggregates user activity across reviews, comments, and ratings.
- * 
+ *
  * Features:
  * - Aggregate stats counting
  * - Recent activity feed
  * - Average rating calculations
- * 
+ *
  * @module controllers/dashboard.controller
  */
 
@@ -20,13 +20,13 @@ import { AuthRequest } from "../middlewares/auth.middleware";
 
 /**
  * Get statistics for the authenticated user's dashboard.
- * 
+ *
  * Aggregates:
  * - Total reviews (comments on listings)
  * - Average rating given by the user
  * - Total comments (on listings and news)
  * - Recent activities list
- * 
+ *
  * @route GET /dashboard/stats
  * @requires authenticate middleware
  * @returns {200} Dashboard statistics object

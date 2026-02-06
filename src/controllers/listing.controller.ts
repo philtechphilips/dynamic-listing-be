@@ -2,17 +2,17 @@
  * =============================================================================
  * LISTING CONTROLLER
  * =============================================================================
- * 
+ *
  * This controller manages the core business listings of the platform.
  * Supports CRUD operations, searching, and categorization.
- * 
+ *
  * Features:
  * - Advanced listing search with category and status filters
  * - Pagination support
  * - Image upload integration
  * - Slug generation for SEO
  * - Rating and review statistics integration
- * 
+ *
  * @module controllers/listing.controller
  */
 
@@ -24,9 +24,9 @@ import { uploadToFirebase } from "../services/upload.service";
 
 /**
  * Get all listings with optional filtering and pagination.
- * 
+ *
  * Supports search by title, location, or address.
- * 
+ *
  * @route GET /listings
  * @param {Request} req - Express request with { category?, status?, search?, page?, limit? } query
  * @returns {200} Paginated list of listings with metadata

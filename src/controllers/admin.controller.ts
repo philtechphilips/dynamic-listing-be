@@ -2,14 +2,14 @@
  * =============================================================================
  * ADMIN CONTROLLER
  * =============================================================================
- * 
+ *
  * This controller manages administrative user operations.
  * It is primarily used for the admin dashboard to manage admin accounts.
- * 
+ *
  * Features:
  * - List all admin users with verification status
  * - Admin account management
- * 
+ *
  * @module controllers/admin.controller
  */
 
@@ -21,10 +21,10 @@ import { AuthRequest } from "../middlewares/auth.middleware";
 
 /**
  * Get all admin users.
- * 
+ *
  * Fetches all users with the 'admin' role, including their verification
  * status and basic profile information.
- * 
+ *
  * @route GET /admin/users
  * @requires isAdmin middleware
  * @returns {200} List of admin users
@@ -412,7 +412,8 @@ export const getDashboardStats = async (_req: AuthRequest, res: Response) => {
     const prismaError = error as { code?: string };
     if (prismaError.code === "P1001" || prismaError.code === "P1002") {
       return res.status(503).json({
-        message: "Database unavailable. Please check your connection and that the database server is running.",
+        message:
+          "Database unavailable. Please check your connection and that the database server is running.",
       });
     }
     return res.status(500).json({ message: "Failed to fetch dashboard stats" });

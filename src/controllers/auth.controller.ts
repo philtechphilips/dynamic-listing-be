@@ -2,7 +2,7 @@
  * =============================================================================
  * AUTHENTICATION CONTROLLER
  * =============================================================================
- * 
+ *
  * This controller handles all authentication-related operations including:
  * - User registration (signup) with email verification
  * - Traditional email/password login
@@ -10,12 +10,12 @@
  * - OTP (One-Time Password) authentication
  * - Password reset and change
  * - Profile image updates
- * 
+ *
  * All endpoints return consistent JSON responses with:
  * - message: Human-readable status message
  * - token: JWT token (on successful authentication)
  * - user: User object (on successful authentication)
- * 
+ *
  * @module controllers/auth.controller
  */
 
@@ -39,7 +39,7 @@ const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 /**
  * Generates a JWT token for a user.
  * Token expires in 1 day.
- * 
+ *
  * @param {string} userId - The user's database ID
  * @returns {string} Signed JWT token
  */
@@ -55,10 +55,10 @@ const generateToken = (userId: string) => {
 
 /**
  * User Signup
- * 
+ *
  * Creates a new user account with email/password authentication.
  * Sends a verification email that user must click to activate account.
- * 
+ *
  * @route POST /auth/signup
  * @param {Request} req - Express request with { name, email, password } body
  * @param {Response} res - Express response
@@ -123,10 +123,10 @@ export const signup = async (req: Request, res: Response) => {
 
 /**
  * Email Verification
- * 
+ *
  * Verifies a user's email address using the token sent during signup.
  * Once verified, the user can log in to their account.
- * 
+ *
  * @route GET /auth/verify-email?token=xxx
  * @param {Request} req - Express request with { token } query param
  * @param {Response} res - Express response
@@ -171,10 +171,10 @@ export const verifyEmail = async (req: Request, res: Response) => {
 
 /**
  * Email/Password Login
- * 
+ *
  * Authenticates a user with their email and password.
  * Returns a JWT token on successful authentication.
- * 
+ *
  * @route POST /auth/login
  * @param {Request} req - Express request with { email, password } body
  * @param {Response} res - Express response
@@ -201,11 +201,9 @@ export const login = async (req: Request, res: Response) => {
     }
 
     if (!user.isVerified) {
-      return res
-        .status(403)
-        .json({
-          message: "Please verify your email address before logging in.",
-        });
+      return res.status(403).json({
+        message: "Please verify your email address before logging in.",
+      });
     }
 
     const token = generateToken(user.id);

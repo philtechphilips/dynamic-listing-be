@@ -2,16 +2,16 @@
  * =============================================================================
  * RATING CONTROLLER
  * =============================================================================
- * 
+ *
  * This controller handles business listing ratings (star ratings).
  * It manages individual user ratings and updates listing aggregates.
- * 
+ *
  * Features:
  * - Upsert logic (create or update) for user ratings
  * - Automatic recalculation of listing average rating and review count
  * - Atomic rating updates
  * - User rating history tracking
- * 
+ *
  * @module controllers/rating.controller
  */
 
@@ -21,9 +21,9 @@ import { AuthRequest } from "../middlewares/auth.middleware";
 
 /**
  * Get the current user's rating for a specific listing.
- * 
+ *
  * Also returns fresh listing-wide stats (average rating, review count).
- * 
+ *
  * @route GET /ratings/:listingId
  * @requires authenticate middleware
  * @param {AuthRequest} req - Express request with listingId param

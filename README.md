@@ -5,6 +5,7 @@ This is the backend for the Dynamic Listing Application, built with Node.js, Exp
 ## 🚀 Getting Started
 
 1. **Install Dependencies**:
+
    ```bash
    npm install
    ```
@@ -14,6 +15,7 @@ This is the backend for the Dynamic Listing Application, built with Node.js, Exp
    - Update `DATABASE_URL`, `JWT_SECRET`, and Firebase/SMTP credentials.
 
 3. **Database Setup**:
+
    ```bash
    npx prisma generate
    npx prisma db push
@@ -42,4 +44,3 @@ This is the backend for the Dynamic Listing Application, built with Node.js, Exp
 - File Uploads via Firebase
 
 For more details, see the main [Project README](../README.md).
-

@@ -2,15 +2,15 @@
  * =============================================================================
  * CATEGORY CONTROLLER
  * =============================================================================
- * 
+ *
  * This controller manages content categories.
  * Categories are used to organize listings and news articles.
- * 
+ *
  * Features:
  * - CRUD operations for categories
  * - Automatic slug generation from category names
  * - Categorization of listings
- * 
+ *
  * @module controllers/category.controller
  */
 
@@ -21,9 +21,9 @@ import slugify from "slugify";
 
 /**
  * Get all categories.
- * 
+ *
  * Returns a list of all categories sorted by sortOrder and name.
- * 
+ *
  * @route GET /categories
  * @returns {200} List of categories
  * @returns {500} Server error
@@ -36,6 +36,10 @@ export const getCategories = async (_req: Request, res: Response) => {
         name: true,
         slug: true,
         description: true,
+        customHeading: true,
+        seoTitle: true,
+        seoDescription: true,
+        seoKeywords: true,
         sortOrder: true,
         createdAt: true,
         updatedAt: true,
@@ -66,6 +70,10 @@ export const getCategory = async (req: Request, res: Response) => {
         name: true,
         slug: true,
         description: true,
+        customHeading: true,
+        seoTitle: true,
+        seoDescription: true,
+        seoKeywords: true,
         sortOrder: true,
         createdAt: true,
         updatedAt: true,
@@ -88,7 +96,15 @@ export const getCategory = async (req: Request, res: Response) => {
  */
 export const createCategory = async (req: AuthRequest, res: Response) => {
   try {
-    const { name, description, sortOrder } = req.body;
+    const {
+      name,
+      description,
+      customHeading,
+      seoTitle,
+      seoDescription,
+      seoKeywords,
+      sortOrder,
+    } = req.body;
 
     if (!name) {
       return res.status(400).json({ message: "Category name is required" });
@@ -121,6 +137,10 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
         name,
         slug,
         description,
+        customHeading,
+        seoTitle,
+        seoDescription,
+        seoKeywords,
         sortOrder: finalSortOrder,
       },
     });
@@ -141,7 +161,14 @@ export const createCategory = async (req: AuthRequest, res: Response) => {
 export const updateCategory = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    const { name, description } = req.body;
+    const {
+      name,
+      description,
+      customHeading,
+      seoTitle,
+      seoDescription,
+      seoKeywords,
+    } = req.body;
 
     // Check if category exists
     const existingCategory = await prisma.category.findUnique({
@@ -165,11 +192,9 @@ export const updateCategory = async (req: AuthRequest, res: Response) => {
       });
 
       if (nameTaken) {
-        return res
-          .status(400)
-          .json({
-            message: "A category with this name or slug already exists",
-          });
+        return res.status(400).json({
+          message: "A category with this name or slug already exists",
+        });
       }
     }
 
@@ -182,10 +207,24 @@ export const updateCategory = async (req: AuthRequest, res: Response) => {
       }
     }
 
-    const updateData: { name?: string; slug?: string; description?: string; sortOrder?: number } = {};
+    const updateData: {
+      name?: string;
+      slug?: string;
+      description?: string;
+      customHeading?: string;
+      seoTitle?: string;
+      seoDescription?: string;
+      seoKeywords?: string;
+      sortOrder?: number;
+    } = {};
     if (name) updateData.name = name;
     if (name) updateData.slug = slug;
     if (description !== undefined) updateData.description = description;
+    if (customHeading !== undefined) updateData.customHeading = customHeading;
+    if (seoTitle !== undefined) updateData.seoTitle = seoTitle;
+    if (seoDescription !== undefined)
+      updateData.seoDescription = seoDescription;
+    if (seoKeywords !== undefined) updateData.seoKeywords = seoKeywords;
     if (sortOrderValue !== undefined) updateData.sortOrder = sortOrderValue;
 
     const updatedCategory = await prisma.category.update({

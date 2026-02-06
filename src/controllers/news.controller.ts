@@ -2,17 +2,17 @@
  * =============================================================================
  * NEWS CONTROLLER
  * =============================================================================
- * 
+ *
  * This controller manages news articles and blog posts.
  * Includes sophisticated headline management logic.
- * 
+ *
  * Features:
  * - News CRUD operations
  * - Headline prioritization (most recent headlines first)
  * - Expiration-aware headline status
  * - Categorization and search
  * - Image upload support
- * 
+ *
  * @module controllers/news.controller
  */
 
@@ -26,7 +26,10 @@ import { uploadToFirebase } from "../services/upload.service";
  * Checks if a news item is currently an active headline.
  * A headline must have isHeadline=true and a future (or null) expiration date.
  */
-function isEffectiveHeadline(item: { isHeadline?: boolean; headlineUntil?: Date | null }) {
+function isEffectiveHeadline(item: {
+  isHeadline?: boolean;
+  headlineUntil?: Date | null;
+}) {
   if (!item.isHeadline) return false;
   if (!item.headlineUntil) return true;
   return new Date(item.headlineUntil) >= new Date();
@@ -34,11 +37,11 @@ function isEffectiveHeadline(item: { isHeadline?: boolean; headlineUntil?: Date 
 
 /**
  * Get all news articles with filtering and pagination.
- * 
+ *
  * Results are ordered by:
  * 1. Active headlines first
  * 2. Most recent publication date
- * 
+ *
  * @route GET /news
  * @param {Request} req - Express request with { status?, search?, category?, page?, limit? } query
  * @returns {200} Paginated list of news articles
@@ -171,12 +174,11 @@ export const createNews = async (req: AuthRequest, res: Response) => {
       counter++;
     }
 
-    const isHeadline = req.body.isHeadline === true || req.body.isHeadline === "true";
+    const isHeadline =
+      req.body.isHeadline === true || req.body.isHeadline === "true";
     const headlineUntil = req.body.headlineUntil
       ? new Date(req.body.headlineUntil)
       : undefined;
-
-
 
     const newsItem = await prisma.news.create({
       data: {
@@ -205,7 +207,7 @@ export const createNews = async (req: AuthRequest, res: Response) => {
     console.error("Error creating news item:", error);
     return res.status(500).json({
       message: "Failed to create news item",
-      error: error.message || "Unknown error"
+      error: error.message || "Unknown error",
     });
   }
 };

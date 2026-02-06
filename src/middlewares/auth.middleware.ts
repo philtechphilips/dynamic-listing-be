@@ -2,10 +2,10 @@
  * =============================================================================
  * AUTHENTICATION MIDDLEWARE
  * =============================================================================
- * 
+ *
  * This module provides authentication and authorization middleware for the API.
  * It handles JWT token verification and role-based access control.
- * 
+ *
  * @module middlewares/auth.middleware
  */
 
@@ -29,21 +29,21 @@ export interface AuthRequest extends Request {
 
 /**
  * Authentication Middleware
- * 
+ *
  * Verifies the JWT token from the Authorization header and attaches
  * the user object to the request for use in subsequent handlers.
- * 
+ *
  * Expected header format: "Authorization: Bearer <token>"
- * 
+ *
  * @param req - Express request (will be extended with user info)
  * @param res - Express response
  * @param next - Next middleware function
- * 
+ *
  * @returns 401 if:
  *   - No token provided
  *   - Token is invalid or expired
  *   - User not found in database
- * 
+ *
  * @example
  * // Use in route definition
  * router.get('/protected', authenticate, (req, res) => {
@@ -101,16 +101,16 @@ export const authenticate = async (
 
 /**
  * Admin Authorization Middleware
- * 
+ *
  * Checks if the authenticated user has admin role.
  * Must be used AFTER the authenticate middleware.
- * 
+ *
  * @param req - Express request (must have user attached)
  * @param res - Express response
  * @param next - Next middleware function
- * 
+ *
  * @returns 403 if user is not an admin
- * 
+ *
  * @example
  * // Use in route definition (after authenticate)
  * router.get('/admin-only', authenticate, isAdmin, (req, res) => {
@@ -132,4 +132,3 @@ export const isAdmin = (
   }
   next();
 };
-

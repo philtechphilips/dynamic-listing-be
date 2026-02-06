@@ -2,14 +2,14 @@
  * =============================================================================
  * FILE UPLOAD SERVICE
  * =============================================================================
- * 
+ *
  * This module handles file uploads to Firebase Storage.
  * It provides a centralized way to upload images and other files.
- * 
+ *
  * Configuration:
  * - Set Firebase environment variables (FIREBASE_API_KEY, etc.)
  * - Ensure Firebase Storage rules allow uploads to the target folder
- * 
+ *
  * @module services/upload.service
  */
 
@@ -49,20 +49,20 @@ const storage = getStorage(app, process.env.FIREBASE_STORAGE_BUCKET);
 
 /**
  * Uploads a file to Firebase Storage.
- * 
+ *
  * This function handles file uploads from express-fileupload middleware.
  * It supports both buffer-based and temp-file-based uploads.
- * 
+ *
  * @param {any} file - The file object from express-fileupload
  * @param {string} [folder="listings"] - The storage folder to upload to
  * @returns {Promise<string>} The public download URL of the uploaded file
  * @throws {Error} If upload fails or file buffer is empty
- * 
+ *
  * @example
  * // In a controller
  * const file = req.files?.image;
  * const imageUrl = await uploadToFirebase(file, 'listings');
- * 
+ *
  * @note Firebase Storage rules must allow writes to the target folder.
  *       The default rules match /listings/{allPaths=**}.
  */
@@ -102,4 +102,3 @@ export const uploadToFirebase = async (
     throw error;
   }
 };
-

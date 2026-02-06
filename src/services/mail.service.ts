@@ -2,16 +2,16 @@
  * =============================================================================
  * EMAIL SERVICE
  * =============================================================================
- * 
+ *
  * This module provides email sending functionality with support for two providers:
- * 
+ *
  * 1. **Resend API** (Recommended for production/cloud environments)
  *    - Works on Render, Vercel, and other cloud platforms that block SMTP
  *    - Set RESEND_API_KEY and RESEND_FROM_EMAIL environment variables
- * 
+ *
  * 2. **SMTP/Nodemailer** (Fallback for local development)
  *    - Set SMTP_HOST, SMTP_USER, SMTP_PASS environment variables
- * 
+ *
  * @module services/mail.service
  */
 
@@ -48,8 +48,8 @@ const transporter = nodemailer.createTransport({
     pass: process.env.SMTP_PASS,
   },
   connectionTimeout: 15000, // 15 seconds
-  greetingTimeout: 10000,   // 10 seconds
-  socketTimeout: 20000,     // 20 seconds
+  greetingTimeout: 10000, // 10 seconds
+  socketTimeout: 20000, // 20 seconds
 });
 
 // ============================================================================
@@ -117,17 +117,17 @@ function getFromAddress(): string {
 
 /**
  * Send an email (awaitable).
- * 
+ *
  * Uses Resend API when configured (recommended for production),
  * otherwise falls back to SMTP.
- * 
+ *
  * @param {string} to - Recipient email address
  * @param {string} subject - Email subject line
  * @param {string} html - HTML email body content
  * @param {string} [text] - Optional plain text version
  * @returns {Promise<{messageId: string}>} The sent message ID
  * @throws {Error} If email sending fails
- * 
+ *
  * @example
  * await sendMail(
  *   'user@example.com',
@@ -189,15 +189,15 @@ export const sendMail = async (
 
 /**
  * Send an email in the background (fire-and-forget).
- * 
+ *
  * Does not block the HTTP response. Use this for non-critical emails
  * where you don't need to wait for confirmation.
- * 
+ *
  * @param {string} to - Recipient email address
  * @param {string} subject - Email subject line
  * @param {string} html - HTML email body content
  * @param {string} [text] - Optional plain text version
- * 
+ *
  * @example
  * // Send welcome email without waiting
  * sendMailInBackground(user.email, 'Welcome!', welcomeHtml);
@@ -213,4 +213,3 @@ export const sendMailInBackground = (
     console.error("[Background email failed]", { to, subject, error: err });
   });
 };
-

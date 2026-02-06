@@ -2,10 +2,10 @@
  * =============================================================================
  * EXPRESS APPLICATION SETUP
  * =============================================================================
- * 
+ *
  * This file initializes the Express application and configures global middlewares.
  * It serves as the main entry point for the REST API's route definitions.
- * 
+ *
  * Middlewares:
  * - Helmet: Security headers
  * - CORS: Cross-origin resource sharing
@@ -13,7 +13,7 @@
  * - Morgan: Request logging
  * - FileUpload: Handling multipart form-data
  * - BodyParser: Parsing JSON and URL-encoded bodies
- * 
+ *
  * @module app
  */
 
