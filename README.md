@@ -1,54 +1,45 @@
-## NODE TEMPLATE (Express Framework)
+# Dynamic Listing Backend
 
-A custom flexible and generic NodeJS/Express template which covers most basic to advance needs of modern REST APIS.
-This template uses the functional programming paradigm and is compiled to be backward compatible using Babel.
+This is the backend for the Dynamic Listing Application, built with Node.js, Express, and Prisma.
 
-Authored By: [Idris Adeniji](https://github.com/alvacoder)
+## 🚀 Getting Started
 
-## DEPENDENCIES
+1. **Install Dependencies**:
+   ```bash
+   npm install
+   ```
 
-This template comes with the following dependencies defined:
+2. **Environment Configuration**:
+   - Copy `.env.example` to `.env`.
+   - Update `DATABASE_URL`, `JWT_SECRET`, and Firebase/SMTP credentials.
 
-- `compression` - `https://github.com/expressjs/compression#readme`
-- `cors` - `https://github.com/expressjs/cors#readme`
-- `joi` - `https://github.com/hapijs/joi#readme`
-- `bodyparser` - `https://github.com/expressjs/body-parser#readme`
-- `safe-compare` - `https://github.com/expressjs/cors#readme`
-- `dotenv` - `https://github.com/motdotla/dotenv#readme`
-- `helmet` - `https://helmetjs.github.io/`
-- `mongoDB` - `https://www.mongodb.com/`
-- `mongoose` - `https://mongoosejs.com/`
-- `morgan` - `https://github.com/expressjs/morgan#readme`
-- `winston` - `https://github.com/winstonjs/winston#readme`
+3. **Database Setup**:
+   ```bash
+   npx prisma generate
+   npx prisma db push
+   ```
 
-### DEV DEPENDENCIES
+4. **Run Development Server**:
+   ```bash
+   npm run dev
+   ```
 
-- `eslint` - `https://eslint.org/`
-- `babel/cli` - `https://babel.dev/docs/en/next/babel-cli`
-- `babel/core` - `https://babel.dev/docs/en/next/babel-core`
-- `babel/node` - `https://babel.dev/docs/en/next/babel-node`
-- `babel/preset-env` - `https://babel.dev/docs/en/next/babel-node`
-- `nodemon` - `https://github.com/remy/nodemon`
-- `eslint-plugin-import` - `https://github.com/expressjs/cors#readme`
-- `eslint-config-airbnb-base` - `https://github.com/airbnb/javascript`
+## 🛠 Tech Stack
 
-### TESTING DEPENDENCIES
+- **Framework**: Express.js
+- **Language**: TypeScript
+- **ORM**: Prisma
+- **Database**: MySQL (via mysql2)
+- **Services**: Firebase Admin SDK, Nodemailer, Resend
 
-- `jest` - `http://jestjs.io/`
-- `supertest` - `https://github.com/visionmedia/supertest#readme`
+## 📂 Features
 
-### CONFIGURATION
+- JWT Authentication & Google OAuth
+- Admin User Management
+- Category & Listing Management
+- News & Headlines System
+- Comment & Rating API
+- File Uploads via Firebase
 
-1. Install dependencies.
+For more details, see the main [Project README](../README.md).
 
-   `npm i`
-
-2. create the following environment variables:
-   - `NODE_ENV`: specifies the working environment
-   - `PORT`: Sets a default app port.
-   - `DB_URI`: Sets a default Mongo DB connection URI.
-3. Be awesome.
-
-### LICENSE
-
-- `ISC` - `https://www.isc.org/licenses/`
