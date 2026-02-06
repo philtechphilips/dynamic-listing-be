@@ -9,7 +9,11 @@ import { uploadToFirebase } from "../services/upload.service";
  */
 export const getListings = async (req: Request, res: Response) => {
   try {
-    const { category, status, search } = req.query;
+    const { category, status, search, page = 1, limit = 10 } = req.query;
+
+    const pageNumber = parseInt(page as string, 10);
+    const limitNumber = parseInt(limit as string, 10);
+    const skip = (pageNumber - 1) * limitNumber;
 
     const where: any = {};
     if (category) where.categoryId = category;
@@ -22,13 +26,26 @@ export const getListings = async (req: Request, res: Response) => {
       ];
     }
 
-    const listings = await prisma.listing.findMany({
-      where,
-      include: { category: true },
-      orderBy: { createdAt: "desc" },
-    });
+    const [listings, total] = await Promise.all([
+      prisma.listing.findMany({
+        where,
+        include: { category: true },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limitNumber,
+      }),
+      prisma.listing.count({ where }),
+    ]);
 
-    return res.status(200).json({ listings });
+    return res.status(200).json({
+      listings,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    });
   } catch (error) {
     console.error("Error fetching listings:", error);
     return res.status(500).json({ message: "Failed to fetch listings" });

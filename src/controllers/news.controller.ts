@@ -16,7 +16,11 @@ function isEffectiveHeadline(item: { isHeadline?: boolean; headlineUntil?: Date 
  */
 export const getAllNews = async (req: Request, res: Response) => {
   try {
-    const { status, search, category } = req.query;
+    const { status, search, category, page = 1, limit = 10 } = req.query;
+
+    const pageNumber = parseInt(page as string, 10);
+    const limitNumber = parseInt(limit as string, 10);
+    const skip = (pageNumber - 1) * limitNumber;
 
     const where: any = {};
     if (status) where.status = status;
@@ -37,14 +41,31 @@ export const getAllNews = async (req: Request, res: Response) => {
       orderBy: { createdAt: "desc" },
     });
 
-    // Put effective headline first for display (e.g. home page)
-    const headlineIndex = news.findIndex((n) => isEffectiveHeadline(n));
-    if (headlineIndex > 0) {
-      const [headline] = news.splice(headlineIndex, 1);
-      news = [headline, ...news];
-    }
+    // Sort to put effective headlines first, then by date logic
+    // We sort here because "isEffectiveHeadline" depends on runtime date checks that involve `headlineUntil`
+    news.sort((a, b) => {
+      const aIsHeadline = isEffectiveHeadline(a);
+      const bIsHeadline = isEffectiveHeadline(b);
 
-    return res.status(200).json({ news });
+      if (aIsHeadline && !bIsHeadline) return -1;
+      if (!aIsHeadline && bIsHeadline) return 1;
+
+      // Both are headlines or both are not - sort by created/updated desc
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
+
+    const total = news.length;
+    const paginatedNews = news.slice(skip, skip + limitNumber);
+
+    return res.status(200).json({
+      news: paginatedNews,
+      pagination: {
+        total,
+        page: pageNumber,
+        limit: limitNumber,
+        totalPages: Math.ceil(total / limitNumber),
+      },
+    });
   } catch (error) {
     console.error("Error fetching news:", error);
     return res.status(500).json({ message: "Failed to fetch news" });
@@ -125,12 +146,7 @@ export const createNews = async (req: AuthRequest, res: Response) => {
       ? new Date(req.body.headlineUntil)
       : undefined;
 
-    if (isHeadline) {
-      await prisma.news.updateMany({
-        where: { isHeadline: true },
-        data: { isHeadline: false, headlineUntil: null },
-      });
-    }
+
 
     const newsItem = await prisma.news.create({
       data: {
@@ -155,9 +171,12 @@ export const createNews = async (req: AuthRequest, res: Response) => {
       message: "News item created successfully",
       news: newsItem,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error creating news item:", error);
-    return res.status(500).json({ message: "Failed to create news item" });
+    return res.status(500).json({
+      message: "Failed to create news item",
+      error: error.message || "Unknown error"
+    });
   }
 };
 
@@ -202,16 +221,13 @@ export const updateNews = async (req: AuthRequest, res: Response) => {
 
     const isHeadline = data.isHeadline === true || data.isHeadline === "true";
     if (isHeadline) {
-      await prisma.news.updateMany({
-        where: { id: { not: id }, isHeadline: true },
-        data: { isHeadline: false, headlineUntil: null },
-      });
+      // Allow multiple headlines - do not reset others
       data.isHeadline = true;
       data.headlineUntil = data.headlineUntil
         ? new Date(data.headlineUntil)
         : data.headlineUntil === ""
-        ? null
-        : undefined;
+          ? null
+          : undefined;
     } else if (Object.prototype.hasOwnProperty.call(data, "isHeadline")) {
       data.isHeadline = false;
       data.headlineUntil = null;

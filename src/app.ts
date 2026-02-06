@@ -17,10 +17,10 @@ app.use(compression());
 app.use(morgan("tiny"));
 app.use(
   fileUpload({
-    limits: { fileSize: 25 * 1024 * 1024 },
+    limits: { fileSize: 10 * 1024 * 1024 },
     useTempFiles: true,
     abortOnLimit: true,
-    responseOnLimit: "Maximum upload size is 25MB",
+    responseOnLimit: "Maximum upload size is 10MB",
   }),
 );
 app.use(
