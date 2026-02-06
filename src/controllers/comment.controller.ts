@@ -1,9 +1,34 @@
+/**
+ * =============================================================================
+ * COMMENT CONTROLLER
+ * =============================================================================
+ * 
+ * This controller handles user comments on listings and news articles.
+ * Multi-purpose system for feedback and discussions.
+ * 
+ * Features:
+ * - List comments for specific listings or news
+ * - User-specific comment history
+ * - Protected creation and deletion
+ * - Authorization checks (author or admin)
+ * 
+ * @module controllers/comment.controller
+ */
+
 import { Request, Response } from "express";
 import prisma from "../services/db.service";
 import { AuthRequest } from "../middlewares/auth.middleware";
 
 /**
- * Get comments for a specific listing or news item
+ * Get comments for a specific entity.
+ * 
+ * Fetches comments for either a listing or a news article based on query params.
+ * 
+ * @route GET /comments
+ * @param {Request} req - Express request with { listingId?, newsId? } query
+ * @returns {200} List of comments with author info
+ * @returns {400} Missing entity ID
+ * @returns {500} Server error
  */
 export const getComments = async (req: Request, res: Response) => {
   try {

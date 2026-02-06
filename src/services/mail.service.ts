@@ -1,15 +1,44 @@
+/**
+ * =============================================================================
+ * EMAIL SERVICE
+ * =============================================================================
+ * 
+ * This module provides email sending functionality with support for two providers:
+ * 
+ * 1. **Resend API** (Recommended for production/cloud environments)
+ *    - Works on Render, Vercel, and other cloud platforms that block SMTP
+ *    - Set RESEND_API_KEY and RESEND_FROM_EMAIL environment variables
+ * 
+ * 2. **SMTP/Nodemailer** (Fallback for local development)
+ *    - Set SMTP_HOST, SMTP_USER, SMTP_PASS environment variables
+ * 
+ * @module services/mail.service
+ */
+
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
 import dotenv from "dotenv";
 
 dotenv.config();
 
-// Resend client (used when RESEND_API_KEY is set - works on Render, Vercel, etc.)
+// ============================================================================
+// PROVIDER CONFIGURATION
+// ============================================================================
+
+/**
+ * Resend API client instance.
+ * Only initialized if RESEND_API_KEY is set.
+ * Resend is recommended for production as many cloud hosts block SMTP.
+ */
 const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-// Nodemailer transporter (for SMTP - local dev or hosts that allow it)
+/**
+ * Nodemailer SMTP transporter.
+ * Used as fallback when Resend is not configured.
+ * Note: SMTP may be blocked on cloud platforms like Render.
+ */
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT || "587"),
@@ -18,15 +47,28 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  connectionTimeout: 15000,
-  greetingTimeout: 10000,
-  socketTimeout: 20000,
+  connectionTimeout: 15000, // 15 seconds
+  greetingTimeout: 10000,   // 10 seconds
+  socketTimeout: 20000,     // 20 seconds
 });
 
+// ============================================================================
+// CONFIGURATION HELPERS
+// ============================================================================
+
+/**
+ * Checks if Resend API is properly configured.
+ * @returns {boolean} True if RESEND_API_KEY is set
+ */
 function isResendConfigured(): boolean {
   return !!process.env.RESEND_API_KEY;
 }
 
+/**
+ * Builds the "From" address for Resend emails.
+ * Uses verified domain email or Resend's test address for development.
+ * @returns {string} Formatted "From" address (e.g., "Name <email@domain.com>")
+ */
 function getResendFrom(): string {
   // Use verified domain email, or Resend's test address (onboarding@resend.dev)
   const email = process.env.RESEND_FROM_EMAIL || "onboarding@resend.dev";
@@ -37,6 +79,10 @@ function getResendFrom(): string {
   return `"${name}" <${email}>`;
 }
 
+/**
+ * Checks if SMTP is properly configured.
+ * @returns {boolean} True if all required SMTP variables are set
+ */
 function isSmtpConfigured(): boolean {
   return !!(
     process.env.SMTP_HOST &&
@@ -45,6 +91,10 @@ function isSmtpConfigured(): boolean {
   );
 }
 
+/**
+ * Builds the "From" address for SMTP/Nodemailer emails.
+ * @returns {string} Formatted "From" address
+ */
 function getFromAddress(): string {
   if (process.env.RESEND_FROM_EMAIL) {
     const name =
@@ -61,9 +111,29 @@ function getFromAddress(): string {
   return '"Dynamic Listing" <onboarding@resend.dev>';
 }
 
+// ============================================================================
+// EMAIL SENDING FUNCTIONS
+// ============================================================================
+
 /**
- * Send an email (awaitable). Uses Resend API when configured (recommended for Render/production),
- * otherwise falls back to SMTP. Throws on failure.
+ * Send an email (awaitable).
+ * 
+ * Uses Resend API when configured (recommended for production),
+ * otherwise falls back to SMTP.
+ * 
+ * @param {string} to - Recipient email address
+ * @param {string} subject - Email subject line
+ * @param {string} html - HTML email body content
+ * @param {string} [text] - Optional plain text version
+ * @returns {Promise<{messageId: string}>} The sent message ID
+ * @throws {Error} If email sending fails
+ * 
+ * @example
+ * await sendMail(
+ *   'user@example.com',
+ *   'Welcome to Dynamic Listing',
+ *   '<h1>Welcome!</h1><p>Thanks for joining.</p>'
+ * );
  */
 export const sendMail = async (
   to: string,
@@ -118,7 +188,20 @@ export const sendMail = async (
 };
 
 /**
- * Send an email in the background. Does not block the HTTP response.
+ * Send an email in the background (fire-and-forget).
+ * 
+ * Does not block the HTTP response. Use this for non-critical emails
+ * where you don't need to wait for confirmation.
+ * 
+ * @param {string} to - Recipient email address
+ * @param {string} subject - Email subject line
+ * @param {string} html - HTML email body content
+ * @param {string} [text] - Optional plain text version
+ * 
+ * @example
+ * // Send welcome email without waiting
+ * sendMailInBackground(user.email, 'Welcome!', welcomeHtml);
+ * res.json({ message: 'User created' }); // Responds immediately
  */
 export const sendMailInBackground = (
   to: string,
@@ -130,3 +213,4 @@ export const sendMailInBackground = (
     console.error("[Background email failed]", { to, subject, error: err });
   });
 };
+

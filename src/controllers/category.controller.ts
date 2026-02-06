@@ -1,10 +1,32 @@
+/**
+ * =============================================================================
+ * CATEGORY CONTROLLER
+ * =============================================================================
+ * 
+ * This controller manages content categories.
+ * Categories are used to organize listings and news articles.
+ * 
+ * Features:
+ * - CRUD operations for categories
+ * - Automatic slug generation from category names
+ * - Categorization of listings
+ * 
+ * @module controllers/category.controller
+ */
+
 import { Request, Response } from "express";
 import prisma from "../services/db.service";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import slugify from "slugify";
 
 /**
- * Get all categories
+ * Get all categories.
+ * 
+ * Returns a list of all categories sorted by sortOrder and name.
+ * 
+ * @route GET /categories
+ * @returns {200} List of categories
+ * @returns {500} Server error
  */
 export const getCategories = async (_req: Request, res: Response) => {
   try {

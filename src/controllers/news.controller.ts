@@ -1,10 +1,31 @@
+/**
+ * =============================================================================
+ * NEWS CONTROLLER
+ * =============================================================================
+ * 
+ * This controller manages news articles and blog posts.
+ * Includes sophisticated headline management logic.
+ * 
+ * Features:
+ * - News CRUD operations
+ * - Headline prioritization (most recent headlines first)
+ * - Expiration-aware headline status
+ * - Categorization and search
+ * - Image upload support
+ * 
+ * @module controllers/news.controller
+ */
+
 import { Request, Response } from "express";
 import prisma from "../services/db.service";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import slugify from "slugify";
 import { uploadToFirebase } from "../services/upload.service";
 
-/** Effective headline: isHeadline and (no end date or end date in future) */
+/**
+ * Checks if a news item is currently an active headline.
+ * A headline must have isHeadline=true and a future (or null) expiration date.
+ */
 function isEffectiveHeadline(item: { isHeadline?: boolean; headlineUntil?: Date | null }) {
   if (!item.isHeadline) return false;
   if (!item.headlineUntil) return true;
@@ -12,7 +33,16 @@ function isEffectiveHeadline(item: { isHeadline?: boolean; headlineUntil?: Date 
 }
 
 /**
- * Get all news. For public (Published) lists, the current headline is ordered first.
+ * Get all news articles with filtering and pagination.
+ * 
+ * Results are ordered by:
+ * 1. Active headlines first
+ * 2. Most recent publication date
+ * 
+ * @route GET /news
+ * @param {Request} req - Express request with { status?, search?, category?, page?, limit? } query
+ * @returns {200} Paginated list of news articles
+ * @returns {500} Server error
  */
 export const getAllNews = async (req: Request, res: Response) => {
   try {

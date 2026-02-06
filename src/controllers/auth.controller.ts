@@ -1,3 +1,24 @@
+/**
+ * =============================================================================
+ * AUTHENTICATION CONTROLLER
+ * =============================================================================
+ * 
+ * This controller handles all authentication-related operations including:
+ * - User registration (signup) with email verification
+ * - Traditional email/password login
+ * - Google OAuth authentication
+ * - OTP (One-Time Password) authentication
+ * - Password reset and change
+ * - Profile image updates
+ * 
+ * All endpoints return consistent JSON responses with:
+ * - message: Human-readable status message
+ * - token: JWT token (on successful authentication)
+ * - user: User object (on successful authentication)
+ * 
+ * @module controllers/auth.controller
+ */
+
 import { Request, Response } from "express";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import bcrypt from "bcryptjs";
@@ -8,14 +29,43 @@ import prisma from "../services/db.service";
 import { sendMailInBackground } from "../services/mail.service";
 import { uploadToFirebase } from "../services/upload.service";
 
+// ============================================================================
+// CONFIGURATION
+// ============================================================================
+
+/** Google OAuth client for verifying Google credentials */
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+/**
+ * Generates a JWT token for a user.
+ * Token expires in 1 day.
+ * 
+ * @param {string} userId - The user's database ID
+ * @returns {string} Signed JWT token
+ */
 const generateToken = (userId: string) => {
   return jwt.sign({ id: userId }, process.env.JWT_SECRET as string, {
     expiresIn: "1d",
   });
 };
 
+// ============================================================================
+// AUTHENTICATION ENDPOINTS
+// ============================================================================
+
+/**
+ * User Signup
+ * 
+ * Creates a new user account with email/password authentication.
+ * Sends a verification email that user must click to activate account.
+ * 
+ * @route POST /auth/signup
+ * @param {Request} req - Express request with { name, email, password } body
+ * @param {Response} res - Express response
+ * @returns {201} User created, verification email sent
+ * @returns {400} User already exists
+ * @returns {500} Server error
+ */
 export const signup = async (req: Request, res: Response) => {
   try {
     const { name, email, password } = req.body;
@@ -28,13 +78,13 @@ export const signup = async (req: Request, res: Response) => {
       return res.status(400).json({ message: "User already exists" });
     }
 
-    // Hash password
+    // Hash password with bcrypt (12 rounds)
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Generate verification token
+    // Generate random verification token
     const verificationToken = randomstring.generate(32);
 
-    // Create new user
+    // Create new user in database
     const newUser = await prisma.user.create({
       data: {
         name,
@@ -46,7 +96,7 @@ export const signup = async (req: Request, res: Response) => {
 
     console.log(`User created with ID: ${newUser.id}`);
 
-    // Send verification email
+    // Send verification email (non-blocking)
     const verificationUrl = `${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}`;
     const emailHtml = `
 <!DOCTYPE html>
@@ -71,6 +121,19 @@ export const signup = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Email Verification
+ * 
+ * Verifies a user's email address using the token sent during signup.
+ * Once verified, the user can log in to their account.
+ * 
+ * @route GET /auth/verify-email?token=xxx
+ * @param {Request} req - Express request with { token } query param
+ * @param {Response} res - Express response
+ * @returns {200} Email verified successfully
+ * @returns {400} Invalid or expired token
+ * @returns {500} Server error
+ */
 export const verifyEmail = async (req: Request, res: Response) => {
   try {
     const { token } = req.query;
@@ -106,6 +169,20 @@ export const verifyEmail = async (req: Request, res: Response) => {
   }
 };
 
+/**
+ * Email/Password Login
+ * 
+ * Authenticates a user with their email and password.
+ * Returns a JWT token on successful authentication.
+ * 
+ * @route POST /auth/login
+ * @param {Request} req - Express request with { email, password } body
+ * @param {Response} res - Express response
+ * @returns {200} Login successful with token and user data
+ * @returns {401} Invalid credentials
+ * @returns {403} Email not verified
+ * @returns {500} Server error
+ */
 export const login = async (req: Request, res: Response) => {
   try {
     const { email, password } = req.body;

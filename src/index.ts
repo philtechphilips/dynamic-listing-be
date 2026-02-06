@@ -1,3 +1,19 @@
+/**
+ * =============================================================================
+ * SERVER ENTRY POINT
+ * =============================================================================
+ * 
+ * This file is responsible for starting the server and establishing 
+ * the initial database connection.
+ * 
+ * Process:
+ * 1. Connect to the database via Prisma
+ * 2. Start the Express server on the configured port
+ * 3. Handle connection errors
+ * 
+ * @module index
+ */
+
 import app from "./app";
 import chalk from "chalk";
 import config from "./config/index";

@@ -1,3 +1,18 @@
+/**
+ * =============================================================================
+ * ADMIN CONTROLLER
+ * =============================================================================
+ * 
+ * This controller manages administrative user operations.
+ * It is primarily used for the admin dashboard to manage admin accounts.
+ * 
+ * Features:
+ * - List all admin users with verification status
+ * - Admin account management
+ * 
+ * @module controllers/admin.controller
+ */
+
 import { Response } from "express";
 import randomstring from "randomstring";
 import prisma from "../services/db.service";
@@ -5,7 +20,15 @@ import { sendMailInBackground } from "../services/mail.service";
 import { AuthRequest } from "../middlewares/auth.middleware";
 
 /**
- * Get all admin users
+ * Get all admin users.
+ * 
+ * Fetches all users with the 'admin' role, including their verification
+ * status and basic profile information.
+ * 
+ * @route GET /admin/users
+ * @requires isAdmin middleware
+ * @returns {200} List of admin users
+ * @returns {500} Server error
  */
 export const getAdminUsers = async (_req: AuthRequest, res: Response) => {
   try {
