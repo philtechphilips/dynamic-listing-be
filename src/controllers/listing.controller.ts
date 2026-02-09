@@ -20,7 +20,7 @@ import { Request, Response } from "express";
 import prisma from "../services/db.service";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import slugify from "slugify";
-import { uploadToFirebase } from "../services/upload.service";
+import { uploadToFirebase, deleteFromFirebase } from "../services/upload.service";
 
 /**
  * Get all listings with optional filtering and pagination.
@@ -284,6 +284,11 @@ export const deleteListing = async (req: AuthRequest, res: Response) => {
 
     if (!listing) {
       return res.status(404).json({ message: "Listing not found" });
+    }
+
+    // Delete the featured image from Firebase Storage if it exists
+    if (listing.featuredImage) {
+      await deleteFromFirebase(listing.featuredImage);
     }
 
     await prisma.listing.delete({

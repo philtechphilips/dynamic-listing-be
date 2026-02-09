@@ -14,7 +14,7 @@
  */
 
 import { initializeApp } from "firebase/app";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from "firebase/storage";
 import dotenv from "dotenv";
 import fs from "fs";
 
@@ -100,5 +100,63 @@ export const uploadToFirebase = async (
   } catch (error) {
     console.error("Firebase upload error:", error);
     throw error;
+  }
+};
+
+/**
+ * Deletes a file from Firebase Storage using its download URL.
+ *
+ * This function extracts the file path from a Firebase Storage download URL
+ * and deletes the corresponding file from storage.
+ *
+ * @param {string} fileUrl - The Firebase Storage download URL of the file to delete
+ * @returns {Promise<boolean>} True if deletion was successful, false otherwise
+ *
+ * @example
+ * // In a controller before deleting a listing
+ * if (listing.featuredImage) {
+ *   await deleteFromFirebase(listing.featuredImage);
+ * }
+ *
+ * @note This function will not throw an error if the file doesn't exist.
+ *       It silently returns false in case of any errors.
+ */
+export const deleteFromFirebase = async (fileUrl: string): Promise<boolean> => {
+  try {
+    if (!fileUrl || !fileUrl.includes("firebase")) {
+      // Not a Firebase URL, skip deletion
+      return false;
+    }
+
+    // Extract the file path from the Firebase Storage URL
+    // URLs look like: https://firebasestorage.googleapis.com/v0/b/bucket/o/folder%2Ffilename?alt=media&token=xxx
+    const urlObj = new URL(fileUrl);
+    const pathMatch = urlObj.pathname.match(/\/o\/(.+?)(\?|$)/);
+
+    if (!pathMatch || !pathMatch[1]) {
+      console.warn("Could not extract file path from URL:", fileUrl);
+      return false;
+    }
+
+    // Decode the URL-encoded path (e.g., %2F -> /)
+    const filePath = decodeURIComponent(pathMatch[1]);
+
+    // Create a reference to the file
+    const fileRef = ref(storage, filePath);
+
+    // Delete the file
+    await deleteObject(fileRef);
+
+    console.log(`Successfully deleted file from Firebase Storage: ${filePath}`);
+    return true;
+  } catch (error: any) {
+    // If the file doesn't exist, just log and continue
+    if (error.code === "storage/object-not-found") {
+      console.log("File not found in Firebase Storage, skipping deletion");
+      return false;
+    }
+
+    console.error("Firebase delete error:", error);
+    return false;
   }
 };

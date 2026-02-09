@@ -20,7 +20,7 @@ import { Request, Response } from "express";
 import prisma from "../services/db.service";
 import { AuthRequest } from "../middlewares/auth.middleware";
 import slugify from "slugify";
-import { uploadToFirebase } from "../services/upload.service";
+import { uploadToFirebase, deleteFromFirebase } from "../services/upload.service";
 
 /**
  * Checks if a news item is currently an active headline.
@@ -295,6 +295,11 @@ export const deleteNews = async (req: AuthRequest, res: Response) => {
 
     if (!newsItem) {
       return res.status(404).json({ message: "News item not found" });
+    }
+
+    // Delete the featured image from Firebase Storage if it exists
+    if (newsItem.featuredImage) {
+      await deleteFromFirebase(newsItem.featuredImage);
     }
 
     await prisma.news.delete({
